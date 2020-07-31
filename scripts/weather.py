@@ -50,25 +50,25 @@ class Epw:
                 "sanity check failed for {}".format(self.__class__.__name__)
             )
 
-    def _read_scheme(self, category: str) -> Tuple:
+    def _read_scheme(self, category: str) -> Tuple[Union[List[str], str]]:
         fields = EPW_SCHEME[self.header][category]["fields"]
         types = EPW_SCHEME[self.header][category]["types"]
         if category == "data":
             count_idx = EPW_SCHEME[self.header][category]["count_idx"]
             return fields, types, count_idx
-        return fields, types
+        else:
+            return fields, types
 
     def _read_entry(self) -> Union[List[str], str]:
         if self.header not in self.headers:
-            raise ValueError("invalid header")
+            raise ValueError("invalid header: {}".format(self.header))
         start_ln_no = self.headers.index(self.header)
         with open(self.epw_file, "rt") as fh:
             epw = [line.rstrip() for line in fh.readlines()]
-        if self.header == self.headers[-1]:
-            entry = epw[start_ln_no:]
+        if self.header == "records":
+            return [item.split(",") for item in epw[start_ln_no:]]
         else:
-            entry = epw[start_ln_no].split(self.header + ",")[-1].strip()
-        return entry
+            return epw[start_ln_no].split(",")[1:]
 
 
 class GroundTemperatures(Epw):
@@ -77,20 +77,16 @@ class GroundTemperatures(Epw):
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
-    def parse_metadata(self):
-        fields = EPW_SCHEME[self.header]["metadata"]["fields"]
-        types = EPW_SCHEME[self.header]["metadata"]["types"]
+    def parse_metadata(self) -> pd.DataFrame:
+        fields, types = self._read_scheme("metadata")
         entry = self._read_entry()
-        entry = entry.split(",")[1:]
         metadata = pd.DataFrame(dict(zip(fields, entry[: len(fields)])), index=[0])
         metadata = metadata.astype(dict(zip(fields, types)))
         self.entry_data = entry[len(fields) :]
         return metadata
 
-    def parse_data(self):
-        fields = EPW_SCHEME[self.header]["data"]["fields"]
-        types = EPW_SCHEME[self.header]["data"]["types"]
-        count_idx = EPW_SCHEME[self.header]["data"]["count_idx"]
+    def parse_data(self) -> pd.DataFrame:
+        fields, types, count_idx = self._read_scheme("data")
         count = getattr(self, count_idx)
         self._check_sanity(self.entry_data, fields, count)
         data = pd.DataFrame(
@@ -111,10 +107,11 @@ class Records(Epw):
     def parse_data(self) -> pd.DataFrame:
         fields, types, _ = self._read_scheme("data")
         entry = self._read_entry()
-        data = pd.DataFrame(item.split(",") for item in entry)
+        data = pd.DataFrame(entry)
         data.replace("", np.nan, inplace=True)
-        fields = fields[: data.shape[1]]
-        types = types[: data.shape[1]]
+        num_col = data.shape[1]
+        fields = fields[:num_col]
+        types = types[:num_col]
         data.columns = fields
         data = data.astype(dict(zip(fields, types)))
         timestamp = data.apply(
@@ -134,6 +131,5 @@ class Records(Epw):
 
 p = Path("scripts") / "in.epw"
 w = Epw(p)
-# b = tuple(EPW_SCHEME.keys())
 print(w.records.dry_bulb_temperature)
-# print(w.ground_temperatures.soil_conductivity)
+print(w.ground_temperatures.ground_temperature_depth)
