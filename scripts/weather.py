@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import numpy as np
 
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 from os import PathLike
 
 AnyPath = Union[str, bytes, PathLike]
@@ -15,17 +15,24 @@ with open("scripts/epw_scheme.json", "rt") as fh:
 
 class Epw:
     def __init__(self, epw_file: AnyPath) -> None:
-        self.epw_file = epw_file
+        self.epw_file = Path(epw_file)
         self.headers = tuple(EPW_SCHEME.keys())
         self.header = self._convert_header(self.__class__.__name__, "var")
 
-    def __getattr__(self, name: str) -> object:
+    def __getattr__(self, name: str) -> Any:
         if name in self.headers:
-
             header_cls_name = self._convert_header(name, "cls")
-            return globals()[header_cls_name](self.epw_file)
+            instance = globals()[header_cls_name](self.epw_file)
+            if name in ("comments_1", "comments_2"):
+                return instance.metadata.loc[0, name]
+            else:
+                return instance
         elif ("metadata" in self.__dir__()) and (name in self.metadata.columns):
             return self.metadata.loc[0, name]
+        elif ("data" in self.__dir__()) and (self.data is None):
+            raise ValueError(
+                "no '{}' data in '{}'".format(self.header, str(self.epw_file.resolve()))
+            )
         elif ("data" in self.__dir__()) and (name in self.data.columns):
             return self.data[name]
         else:
@@ -41,7 +48,7 @@ class Epw:
             return "".join(tuple(item.capitalize() for item in header.split("_")))
         elif to == "var":
             return "_".join(
-                tuple(item.lower() for item in re.findall("[A-Z][^A-Z]*", header))
+                tuple(item.lower() for item in re.findall("[A-Z0-9][^A-Z0-9]*", header))
             )
 
     def _check_header_sanity(self) -> None:
@@ -55,7 +62,7 @@ class Epw:
     ) -> None:
         if len(fields) * count != len(entry_data):
             raise ValueError(
-                "data sanity check failed for {}".format(self.__class__.__name__)
+                "data sanity check failed for '{}'".format(self.__class__.__name__)
             )
 
     def _read_scheme(self, category: str) -> Tuple[Union[List[str], str]]:
@@ -84,20 +91,24 @@ class Epw:
         entry = self._read_entry()
         if "data" in EPW_SCHEME[self.header].keys():
             self.entry_data = entry[len(fields) :]
-        metadata = pd.DataFrame(dict(zip(fields, entry[: len(fields)])), index=[0])
+        metadata = pd.DataFrame([entry[: len(fields)]], columns=fields)
         return metadata.astype(dict(zip(fields, types)))
 
-    def parse_data(self) -> pd.DataFrame:
+    def parse_data(self) -> Union[pd.DataFrame, None]:
         self._check_header_sanity()
         fields, types, count_idx = self._read_scheme("data")
         count = getattr(self, count_idx)
         self._check_data_sanity(self.entry_data, fields, count)
+        if not count:
+            return None
         data = pd.DataFrame(
-            self.entry_data[i * len(fields) : (i + 1) * len(fields)]
-            for i in range(count)
+            (
+                self.entry_data[i * len(fields) : (i + 1) * len(fields)]
+                for i in range(count)
+            ),
+            columns=fields,
         )
         data.replace("", np.nan, inplace=True)
-        data.columns = fields
         return data.astype(dict(zip(fields, types)))
 
 
@@ -105,6 +116,17 @@ class Location(Epw):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.metadata = self.parse_metadata()
+
+
+class DesignConditions(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+        self.data = self.parse_data()
+
+    def parse_data(self) -> pd.DataFrame:
+        # TODO
+        pass
 
 
 class TypicalExtremePeriods(Epw):
@@ -115,6 +137,32 @@ class TypicalExtremePeriods(Epw):
 
 
 class GroundTemperatures(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+        self.data = self.parse_data()
+
+
+class HolidaysDaylightSaving(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+        self.data = self.parse_data()
+
+
+class Comments1(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+
+
+class Comments2(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+
+
+class DataPeriods(Epw):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.metadata = self.parse_metadata()
@@ -141,7 +189,11 @@ class Records(Epw):
 p = Path("scripts") / "in.epw"
 w = Epw(p)
 print(w.location.latitude)
+print(w.design_conditions.number_of_design_conditions)
 print(w.typical_extreme_periods.start_day)
 print(w.ground_temperatures.depth)
+print(w.holidays_daylight_saving.number_of_holidays)
+print(w.comments_1)
+print(w.comments_2)
+print(w.data_periods.number_of_data_periods)
 print(w.records.dry_bulb_temperature)
-print(w.ground_temperatures.data)
