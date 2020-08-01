@@ -44,13 +44,22 @@ class Epw:
                 tuple(item.lower() for item in re.findall("[A-Z][^A-Z]*", header))
             )
 
-    def _check_sanity(self, entry_data: List, fields: List[str], count: int) -> None:
+    def _check_header_sanity(self) -> None:
+        if self.header == "epw":
+            raise NotImplementedError
+        elif self.header not in self.headers:
+            raise ValueError("invalid header: {}".format(self.header))
+
+    def _check_data_sanity(
+        self, entry_data: List, fields: List[str], count: int
+    ) -> None:
         if len(fields) * count != len(entry_data):
             raise ValueError(
-                "sanity check failed for {}".format(self.__class__.__name__)
+                "data sanity check failed for {}".format(self.__class__.__name__)
             )
 
     def _read_scheme(self, category: str) -> Tuple[Union[List[str], str]]:
+        self._check_header_sanity()
         fields = EPW_SCHEME[self.header][category]["fields"]
         types = EPW_SCHEME[self.header][category]["types"]
         if category == "data":
@@ -60,8 +69,7 @@ class Epw:
             return fields, types
 
     def _read_entry(self) -> Union[List[str], str]:
-        if self.header not in self.headers:
-            raise ValueError("invalid header: {}".format(self.header))
+        self._check_header_sanity()
         start_ln_no = self.headers.index(self.header)
         with open(self.epw_file, "rt") as fh:
             epw = [line.rstrip() for line in fh.readlines()]
@@ -70,33 +78,47 @@ class Epw:
         else:
             return epw[start_ln_no].split(",")[1:]
 
-
-class GroundTemperatures(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.metadata = self.parse_metadata()
-        self.data = self.parse_data()
-
     def parse_metadata(self) -> pd.DataFrame:
+        self._check_header_sanity()
         fields, types = self._read_scheme("metadata")
         entry = self._read_entry()
+        if "data" in EPW_SCHEME[self.header].keys():
+            self.entry_data = entry[len(fields) :]
         metadata = pd.DataFrame(dict(zip(fields, entry[: len(fields)])), index=[0])
-        metadata = metadata.astype(dict(zip(fields, types)))
-        self.entry_data = entry[len(fields) :]
-        return metadata
+        return metadata.astype(dict(zip(fields, types)))
 
     def parse_data(self) -> pd.DataFrame:
+        self._check_header_sanity()
         fields, types, count_idx = self._read_scheme("data")
         count = getattr(self, count_idx)
-        self._check_sanity(self.entry_data, fields, count)
+        self._check_data_sanity(self.entry_data, fields, count)
         data = pd.DataFrame(
             self.entry_data[i * len(fields) : (i + 1) * len(fields)]
             for i in range(count)
         )
         data.replace("", np.nan, inplace=True)
         data.columns = fields
-        data = data.astype(dict(zip(fields, types)))
-        return data
+        return data.astype(dict(zip(fields, types)))
+
+
+class Location(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+
+
+class TypicalExtremePeriods(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+        self.data = self.parse_data()
+
+
+class GroundTemperatures(Epw):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.metadata = self.parse_metadata()
+        self.data = self.parse_data()
 
 
 class Records(Epw):
@@ -113,23 +135,13 @@ class Records(Epw):
         fields = fields[:num_col]
         types = types[:num_col]
         data.columns = fields
-        data = data.astype(dict(zip(fields, types)))
-        timestamp = data.apply(
-            lambda x: pd.Timestamp(
-                year=x.year,
-                month=x.month,
-                day=x.day,
-                hour=x.hour - 1,
-                minute=int(x.minute / 2),
-            ),
-            axis=1,
-        )
-        data.index = pd.DatetimeIndex(timestamp)
-        data = data.drop(columns=["year", "month", "day", "hour", "minute"])
-        return data
+        return data.astype(dict(zip(fields, types)))
 
 
 p = Path("scripts") / "in.epw"
 w = Epw(p)
+print(w.location.latitude)
+print(w.typical_extreme_periods.start_day)
+print(w.ground_temperatures.depth)
 print(w.records.dry_bulb_temperature)
-print(w.ground_temperatures.ground_temperature_depth)
+print(w.ground_temperatures.data)
