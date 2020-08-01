@@ -96,19 +96,19 @@ class Epw:
         else:
             return epw[start_ln_no].split(",")[1:]
 
-    def parse_metadata(self) -> np.recarray:
+    def parse_metadata(self) -> np.ndarray:
         self._check_header_sanity()
         fields, types = self._read_scheme("metadata")
         self.fields.extend(fields)
         entry = self._read_entry()
-        entry_metadata = [
+        entry_metadata = tuple(
             np.nan if item.strip() == "" else item for item in entry[: len(fields)]
-        ]
+        )
         if "data" in EPW_SCHEME[self.header].keys():
             self.entry_data = entry[len(fields) :]
-        return np.rec.array(entry_metadata, dtype=list(zip(fields, types)))
+        return np.array(entry_metadata, dtype=list(zip(fields, types)))
 
-    def parse_data(self) -> Union[np.recarray, None]:
+    def parse_data(self) -> Union[np.ndarray, None]:
         self._check_header_sanity()
         fields, types, count_idx = self._read_scheme("data")
         self.fields.extend(fields)
@@ -119,7 +119,7 @@ class Epw:
         entry_data = tuple(
             np.nan if item.strip() == "" else item for item in self.entry_data
         )
-        return np.rec.array(
+        return np.array(
             [entry_data[i * len(fields) : (i + 1) * len(fields)] for i in range(count)],
             dtype=list(zip(fields, types)),
         )
@@ -137,7 +137,7 @@ class DesignConditions(Epw):
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
-    def parse_data(self) -> np.recarray:
+    def parse_data(self) -> np.ndarray:
         # TODO
         pass
 
@@ -187,7 +187,7 @@ class Records(Epw):
         super().__init__(*args, **kwargs)
         self.data = self.parse_data()
 
-    def parse_data(self) -> np.recarray:
+    def parse_data(self) -> np.ndarray:
         self._check_header_sanity()
         fields, types, _ = self._read_scheme("data")
         self.fields.extend(fields)
@@ -198,7 +198,7 @@ class Records(Epw):
         num_fields = len(entry_data[0])
         fields = fields[:num_fields]
         types = types[:num_fields]
-        return np.rec.array(entry_data, dtype=list(zip(fields, types)))
+        return np.array(entry_data, dtype=list(zip(fields, types)))
 
 
 if __name__ == "__main__":
