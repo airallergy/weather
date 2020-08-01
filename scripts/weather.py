@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import numpy as np
 
-from typing import Any, List, Tuple, Union
+from typing import Any, Iterable, List, Tuple, Union
 from os import PathLike
 
 AnyPath = Union[str, bytes, PathLike]
@@ -18,6 +18,8 @@ class Epw:
         self.epw_file = Path(epw_file)
         self.headers = tuple(EPW_SCHEME.keys())
         self.header = self._convert_header(self.__class__.__name__, "var")
+        if self.header in self.headers:
+            self.fields = []
 
     def __getattr__(self, name: str) -> Any:
         if name in self.headers:
@@ -42,6 +44,16 @@ class Epw:
                 )
             )
 
+    def __dir__(self) -> Iterable[str]:
+        if self.header == "epw":
+            return sorted(
+                set(super().__dir__() + list(self.__dict__.keys()) + list(self.headers))
+            )
+        elif self.header in self.headers:
+            return sorted(
+                set(super().__dir__() + list(self.__dict__.keys()) + list(self.fields))
+            )
+
     @staticmethod
     def _convert_header(header: str, to: str) -> str:
         if to == "cls":
@@ -58,7 +70,7 @@ class Epw:
             raise ValueError("invalid header: {}".format(self.header))
 
     def _check_data_sanity(
-        self, entry_data: List, fields: List[str], count: int
+        self, entry_data: Iterable, fields: Iterable[str], count: int
     ) -> None:
         if len(fields) * count != len(entry_data):
             raise ValueError(
@@ -88,6 +100,7 @@ class Epw:
     def parse_metadata(self) -> pd.DataFrame:
         self._check_header_sanity()
         fields, types = self._read_scheme("metadata")
+        self.fields.extend(fields)
         entry = self._read_entry()
         if "data" in EPW_SCHEME[self.header].keys():
             self.entry_data = entry[len(fields) :]
@@ -97,6 +110,7 @@ class Epw:
     def parse_data(self) -> Union[pd.DataFrame, None]:
         self._check_header_sanity()
         fields, types, count_idx = self._read_scheme("data")
+        self.fields.extend(fields)
         count = getattr(self, count_idx)
         self._check_data_sanity(self.entry_data, fields, count)
         if not count:
@@ -176,6 +190,7 @@ class Records(Epw):
 
     def parse_data(self) -> pd.DataFrame:
         fields, types, _ = self._read_scheme("data")
+        self.fields.extend(fields)
         entry = self._read_entry()
         data = pd.DataFrame(entry)
         data.replace("", np.nan, inplace=True)
@@ -186,14 +201,17 @@ class Records(Epw):
         return data.astype(dict(zip(fields, types)))
 
 
-p = Path("scripts") / "in.epw"
-w = Epw(p)
-print(w.location.latitude)
-print(w.design_conditions.number_of_design_conditions)
-print(w.typical_extreme_periods.start_day)
-print(w.ground_temperatures.depth)
-print(w.holidays_daylight_saving.number_of_holidays)
-print(w.comments_1)
-print(w.comments_2)
-print(w.data_periods.number_of_data_periods)
-print(w.records.dry_bulb_temperature)
+if __name__ == "__main__":
+    p = Path("scripts") / "in.epw"
+    w = Epw(p)
+    # print(w.location.latitude)
+    # print(w.design_conditions.number_of_design_conditions)
+    # print(w.typical_extreme_periods.start_day)
+    # print(w.ground_temperatures.depth)
+    # print(w.holidays_daylight_saving.number_of_holidays)
+    # print(w.comments_1)
+    # print(w.comments_2)
+    # print(w.data_periods.number_of_data_periods)
+    # print(w.records.dry_bulb_temperature)
+    # print(dir(w))
+    # print(dir(w.location))
