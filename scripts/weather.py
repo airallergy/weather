@@ -1,8 +1,7 @@
 import json
 from pathlib import Path
-import re
-import pandas as pd
 import numpy as np
+import re
 
 from typing import Any, Iterable, List, Tuple, Union
 from os import PathLike
@@ -44,7 +43,7 @@ class Epw:
                 )
             )
 
-    def __dir__(self) -> Iterable[str]:
+    def __dir__(self) -> List[str]:
         if self.header == "epw":
             return sorted(
                 set(super().__dir__() + list(self.__dict__.keys()) + list(self.headers))
@@ -97,7 +96,7 @@ class Epw:
         else:
             return epw[start_ln_no].split(",")[1:]
 
-    def parse_metadata(self) -> pd.DataFrame:
+    def parse_metadata(self) -> np.recarray:
         self._check_header_sanity()
         fields, types = self._read_scheme("metadata")
         self.fields.extend(fields)
@@ -109,7 +108,7 @@ class Epw:
             self.entry_data = entry[len(fields) :]
         return np.rec.array(entry_metadata, dtype=list(zip(fields, types)))
 
-    def parse_data(self) -> Union[pd.DataFrame, None]:
+    def parse_data(self) -> Union[np.recarray, None]:
         self._check_header_sanity()
         fields, types, count_idx = self._read_scheme("data")
         self.fields.extend(fields)
@@ -117,14 +116,11 @@ class Epw:
         self._check_data_sanity(self.entry_data, fields, count)
         if not count:
             return None
-        entry_data = [
+        entry_data = tuple(
             np.nan if item.strip() == "" else item for item in self.entry_data
-        ]
+        )
         return np.rec.array(
-            [
-                tuple(entry_data[i * len(fields) : (i + 1) * len(fields)])
-                for i in range(count)
-            ],
+            [entry_data[i * len(fields) : (i + 1) * len(fields)] for i in range(count)],
             dtype=list(zip(fields, types)),
         )
 
@@ -141,7 +137,7 @@ class DesignConditions(Epw):
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
-    def parse_data(self) -> pd.DataFrame:
+    def parse_data(self) -> np.recarray:
         # TODO
         pass
 
@@ -191,7 +187,7 @@ class Records(Epw):
         super().__init__(*args, **kwargs)
         self.data = self.parse_data()
 
-    def parse_data(self) -> pd.DataFrame:
+    def parse_data(self) -> np.recarray:
         self._check_header_sanity()
         fields, types, _ = self._read_scheme("data")
         self.fields.extend(fields)
