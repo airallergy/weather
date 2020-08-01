@@ -26,16 +26,16 @@ class Epw:
             header_cls_name = self._convert_header(name, "cls")
             instance = globals()[header_cls_name](self.epw_file)
             if name in ("comments_1", "comments_2"):
-                return instance.metadata.loc[0, name]
+                return instance.metadata[name].item()
             else:
                 return instance
-        elif ("metadata" in self.__dir__()) and (name in self.metadata.columns):
-            return self.metadata.loc[0, name]
+        elif ("metadata" in self.__dir__()) and (name in self.metadata.dtype.names):
+            return self.metadata[name].item()
         elif ("data" in self.__dir__()) and (self.data is None):
             raise ValueError(
                 "no '{}' data in '{}'".format(self.header, str(self.epw_file.resolve()))
             )
-        elif ("data" in self.__dir__()) and (name in self.data.columns):
+        elif ("data" in self.__dir__()) and (name in self.data.dtype.names):
             return self.data[name]
         else:
             raise AttributeError(
@@ -102,10 +102,12 @@ class Epw:
         fields, types = self._read_scheme("metadata")
         self.fields.extend(fields)
         entry = self._read_entry()
+        entry_metadata = [
+            np.nan if item.strip() == "" else item for item in entry[: len(fields)]
+        ]
         if "data" in EPW_SCHEME[self.header].keys():
             self.entry_data = entry[len(fields) :]
-        metadata = pd.DataFrame([entry[: len(fields)]], columns=fields)
-        return metadata.astype(dict(zip(fields, types)))
+        return np.rec.array(entry_metadata, dtype=list(zip(fields, types)))
 
     def parse_data(self) -> Union[pd.DataFrame, None]:
         self._check_header_sanity()
@@ -115,15 +117,16 @@ class Epw:
         self._check_data_sanity(self.entry_data, fields, count)
         if not count:
             return None
-        data = pd.DataFrame(
-            (
-                self.entry_data[i * len(fields) : (i + 1) * len(fields)]
+        entry_data = [
+            np.nan if item.strip() == "" else item for item in self.entry_data
+        ]
+        return np.rec.array(
+            [
+                tuple(entry_data[i * len(fields) : (i + 1) * len(fields)])
                 for i in range(count)
-            ),
-            columns=fields,
+            ],
+            dtype=list(zip(fields, types)),
         )
-        data.replace("", np.nan, inplace=True)
-        return data.astype(dict(zip(fields, types)))
 
 
 class Location(Epw):
@@ -189,29 +192,30 @@ class Records(Epw):
         self.data = self.parse_data()
 
     def parse_data(self) -> pd.DataFrame:
+        self._check_header_sanity()
         fields, types, _ = self._read_scheme("data")
         self.fields.extend(fields)
-        entry = self._read_entry()
-        data = pd.DataFrame(entry)
-        data.replace("", np.nan, inplace=True)
-        num_col = data.shape[1]
-        fields = fields[:num_col]
-        types = types[:num_col]
-        data.columns = fields
-        return data.astype(dict(zip(fields, types)))
+        entry_data = [
+            tuple(np.nan if item.strip() == "" else item for item in arr)
+            for arr in self._read_entry()
+        ]
+        num_fields = len(entry_data[0])
+        fields = fields[:num_fields]
+        types = types[:num_fields]
+        return np.rec.array(entry_data, dtype=list(zip(fields, types)))
 
 
 if __name__ == "__main__":
     p = Path("scripts") / "in.epw"
     w = Epw(p)
-    # print(w.location.latitude)
-    # print(w.design_conditions.number_of_design_conditions)
-    # print(w.typical_extreme_periods.start_day)
-    # print(w.ground_temperatures.depth)
-    # print(w.holidays_daylight_saving.number_of_holidays)
-    # print(w.comments_1)
-    # print(w.comments_2)
-    # print(w.data_periods.number_of_data_periods)
-    # print(w.records.dry_bulb_temperature)
-    # print(dir(w))
-    # print(dir(w.location))
+    print(w.location.latitude)
+    print(w.design_conditions.number_of_design_conditions)
+    print(w.typical_extreme_periods.start_day)
+    print(w.ground_temperatures.depth)
+    print(w.holidays_daylight_saving.number_of_holidays)
+    print(w.comments_1)
+    print(w.comments_2)
+    print(w.data_periods.number_of_data_periods)
+    print(w.records.dry_bulb_temperature)
+    print(dir(w))
+    print(dir(w.location))
