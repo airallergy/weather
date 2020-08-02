@@ -126,14 +126,21 @@ class Epw:
 
 
 class Location(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
+        self.fields.extend("state_province_region".split("_"))
+
+    def __getattr__(self, name: str) -> Any:
+        if name in "state_province_region".split("_"):
+            return self.metadata["state_province_region"].item()
+        else:
+            return super().__getattr__(name)
 
 
 class DesignConditions(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
@@ -143,48 +150,48 @@ class DesignConditions(Epw):
 
 
 class TypicalExtremePeriods(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
 
 class GroundTemperatures(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
 
 class HolidaysDaylightSaving(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
 
 class Comments1(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
 
 
 class Comments2(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
 
 
 class DataPeriods(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.metadata = self.parse_metadata()
         self.data = self.parse_data()
 
 
 class Records(Epw):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, epw_file: AnyPath) -> None:
+        super().__init__(epw_file)
         self.data = self.parse_data()
 
     def parse_data(self) -> np.ndarray:
@@ -204,7 +211,7 @@ class Records(Epw):
 if __name__ == "__main__":
     p = Path("scripts") / "in.epw"
     w = Epw(p)
-    print(w.location.latitude)
+    print(w.location.region)
     print(w.design_conditions.number_of_design_conditions)
     print(w.typical_extreme_periods.start_day)
     print(w.ground_temperatures.depth)
@@ -215,3 +222,5 @@ if __name__ == "__main__":
     print(w.records.dry_bulb_temperature)
     print(dir(w))
     print(dir(w.location))
+    # print(w.haha)
+    # print(w.location.haha)
