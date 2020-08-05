@@ -31,16 +31,12 @@ class Epw:
         elif ("metadata" in self.__dir__()) and (name in self.metadata.dtype.names):
             return self.metadata[name].item()
         elif ("data" in self.__dir__()) and (self.data is None):
-            raise ValueError(
-                "no '{}' data in '{}'".format(self.header, str(self.epw_file.resolve()))
-            )
+            raise ValueError(f"no '{self.header}' data in '{self.epw_file.resolve()}'")
         elif ("data" in self.__dir__()) and (name in self.data.dtype.names):
             return self.data[name]
         else:
             raise AttributeError(
-                "'{}' object has no attribute '{}'".format(
-                    self.__class__.__name__, name
-                )
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
             )
 
     def __dir__(self) -> List[str]:
@@ -66,14 +62,14 @@ class Epw:
         if self.header == "epw":
             raise NotImplementedError
         elif self.header not in self.headers:
-            raise ValueError("invalid header: {}".format(self.header))
+            raise ValueError(f"invalid header: {self.header}")
 
     def _check_data_sanity(
         self, entry_data: Iterable, fields: Iterable[str], count: int
     ) -> None:
         if len(fields) * count != len(entry_data):
             raise ValueError(
-                "data sanity check failed for '{}'".format(self.__class__.__name__)
+                f"data sanity check failed for '{self.__class__.__name__}'"
             )
 
     def _read_scheme(self, category: str) -> Tuple[Union[List[str], str]]:
