@@ -1,4 +1,4 @@
-import json
+from epw_scheme import EPW_SCHEME
 from pathlib import Path
 import numpy as np
 import re
@@ -7,9 +7,6 @@ from typing import Any, Iterable, List, Tuple, Union
 from os import PathLike
 
 AnyPath = Union[str, bytes, PathLike]
-
-with open("scripts/epw_scheme.json", "rt") as fh:
-    EPW_SCHEME = json.load(fh)
 
 
 class Epw:
