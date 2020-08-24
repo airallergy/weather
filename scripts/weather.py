@@ -1,10 +1,11 @@
-from epw_scheme import EPW_SCHEME
 from pathlib import Path
 import numpy as np
 import re
 
 from typing import Any, Iterable, List, Tuple, Union
 from os import PathLike
+
+from scripts.epw_scheme import EPW_SCHEME
 
 AnyPath = Union[str, bytes, PathLike]
 
