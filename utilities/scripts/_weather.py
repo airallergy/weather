@@ -1,11 +1,11 @@
-from pathlib import Path
-import numpy as np
 import re
+import numpy as np
+from pathlib import Path
 
-from typing import Any, Iterable, List, Tuple, Union
+from _epw_scheme import EPW_SCHEME
+
 from os import PathLike
-
-from scripts.epw_scheme import EPW_SCHEME
+from typing import Any, Iterable, List, Tuple, Union
 
 AnyPath = Union[str, bytes, PathLike]
 
@@ -203,7 +203,7 @@ class Records(Epw):
 
 
 if __name__ == "__main__":
-    p = Path("scripts") / "in.epw"
+    p = Path(__file__) / "in.epw"
     w = Epw(p)
     print(w.location.region)
     print(w.design_conditions.number_of_design_conditions)
