@@ -2,7 +2,7 @@ import re
 import numpy as np
 from pathlib import Path
 
-from _epw_scheme import EPW_SCHEME
+from ._epw_scheme import EPW_SCHEME
 
 from os import PathLike
 from typing import Any, Iterable, List, Tuple, Union
