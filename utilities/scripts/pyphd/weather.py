@@ -4,10 +4,8 @@ from pathlib import Path
 
 from ._epw_scheme import EPW_SCHEME
 
-from os import PathLike
 from typing import Any, Iterable, List, Tuple, Union
-
-AnyPath = Union[str, bytes, PathLike]
+from pyphd.tools import AnyPath
 
 
 class Epw:
@@ -200,21 +198,3 @@ class Records(Epw):
         fields = fields[:num_fields]
         types = types[:num_fields]
         return np.array(entry_data, dtype=list(zip(fields, types)))
-
-
-if __name__ == "__main__":
-    p = Path(__file__) / "in.epw"
-    w = Epw(p)
-    print(w.location.region)
-    print(w.design_conditions.number_of_design_conditions)
-    print(w.typical_extreme_periods.start_day)
-    print(w.ground_temperatures.depth)
-    print(w.holidays_daylight_saving.number_of_holidays)
-    print(w.comments_1)
-    print(w.comments_2)
-    print(w.data_periods.number_of_data_periods)
-    print(w.records.dry_bulb_temperature)
-    print(dir(w))
-    print(dir(w.location))
-    # print(w.haha)
-    # print(w.location.haha)
