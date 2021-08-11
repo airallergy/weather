@@ -81,8 +81,8 @@ class Epw:
     def _read_entry(self) -> Union[List[str], str]:
         self._check_header_sanity()
         start_ln_no = self.headers.index(self.header)
-        with open(self.epw_file, "rt") as fh:
-            epw = [line.rstrip() for line in fh.readlines()]
+        with open(self.epw_file, "rt") as f:
+            epw = [line.rstrip() for line in f.readlines()]
         if self.header == "records":
             return [item.split(",") for item in epw[start_ln_no:]]
         else:
