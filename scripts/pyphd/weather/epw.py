@@ -1,4 +1,4 @@
-from itertools import chain
+from itertools import chain, islice
 from dataclasses import dataclass, make_dataclass
 
 from ._epw_schema import _EPW_SCHEMA
@@ -13,8 +13,6 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 """
 
 # TODO: check numbers
-
-
 @dataclass(kw_only=True)
 class _Records:
     @classmethod
@@ -30,6 +28,14 @@ class _Records:
                 strict=True,
             )
         )
+
+    def __getattr__(self, name: str):
+        idx = next(
+            (item[0] for item in enumerate(self.fields) if item[1][0] == name), None
+        )
+        if idx is None:
+            raise AttributeError(f"invalid field name: '{name}'")
+        return next(islice(zip(*self.records, strict=True), idx, None))
 
 
 def _make_header_dataclass(header_name: str) -> type:
