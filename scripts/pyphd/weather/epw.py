@@ -15,6 +15,7 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 # TODO: check numbers
 # TODO: rper
 DATACLASS_PARAMS = {
+    "repr": False,
     "eq": False,  # not work for float("nan")
     "order": False,  # see 'eq'
     "kw_only": True,
@@ -24,6 +25,13 @@ DATACLASS_PARAMS = {
 
 @dataclass(**DATACLASS_PARAMS)
 class _Records:
+    def __repr__(self):
+        metafield_names = chain(
+            self.metafields.keys(),
+            ("records",) if "fields" in self.__class__.__dict__ else (),
+        )
+        return f"<{self.__class__.__name__}: {', '.join(metafield_name for metafield_name in metafield_names)}>"
+
     def __getattr__(self, name: str):
         idx = next(
             (
@@ -170,6 +178,16 @@ class EPW(_Records):
     comments_2: _Comments2
     data_periods: _DataPeriods
     records: AnyRecords
+    metafields: ClassVar[AnyFieldSchema] = {
+        "location": _Location,
+        "design_conditions": _DesignConditions,
+        "typical_extreme_periods": _TypicalExtremePeriods,
+        "ground_temperatures": _GroundTemperatures,
+        "holidays_daylight_saving": _HolidaysDaylightSaving,
+        "comments_1": _Comments1,
+        "comments_2": _Comments2,
+        "data_periods": _DataPeriods,
+    }
     fields: ClassVar[AnyFieldSchema] = _EPW_SCHEMA["data"]["fields"]
 
     @classmethod
