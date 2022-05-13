@@ -18,7 +18,12 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 class _Records:
     def __getattr__(self, name: str):
         idx = next(
-            (item[0] for item in enumerate(self.fields) if item[1][0] == name), None
+            (
+                idx
+                for idx, field_name in enumerate(self.fields.keys())
+                if field_name == name
+            ),
+            None,
         )
         if idx is None:
             raise AttributeError(f"invalid field name: '{name}'")
@@ -30,8 +35,10 @@ class _Records:
             zip(
                 *(
                     map(field_type, field_vals)
-                    for (_, field_type), field_vals in zip(
-                        cls.fields, zip(*records_iter, strict=True), strict=True
+                    for field_type, field_vals in zip(
+                        cls.fields.values(),
+                        zip(*records_iter, strict=True),
+                        strict=True,
                     )
                 ),
                 strict=True,
@@ -60,7 +67,7 @@ def _make_header_dataclass(header_name: str) -> type:
             header_dict = {
                 metafield_name: metafield_type(metafield_val)
                 for (metafield_name, metafield_type), metafield_val in zip(
-                    cls.metafields,
+                    cls.metafields.items(),
                     epw_line_parts[1 : num_metafields + 1],
                     strict=True,
                 )
@@ -81,7 +88,13 @@ def _make_header_dataclass(header_name: str) -> type:
                 _EPW_HEADER_NAMES[header_name]
                 + ","
                 + ",".join(
-                    map(str, (self.__dict__[item] for item, _ in self.metafields))
+                    map(
+                        str,
+                        (
+                            self.__dict__[metafield_name]
+                            for metafield_name in self.metafields.keys()
+                        ),
+                    )
                 )
                 + (
                     "," + self._dump_epw_records()
@@ -113,12 +126,15 @@ def _make_header_dataclass(header_name: str) -> type:
             #####################################
             return ",".join(super()._dump_epw_records()).replace("nan", "")
 
-    records_schema = (("records", AnyRecords),) if "fields" in header_schema else ()
-    namespace = {"fields": header_schema["fields"]} if "fields" in header_schema else {}
+    records_schema, namespace = (
+        ({"records": AnyRecords}, {"fields": header_schema["fields"]})
+        if "fields" in header_schema
+        else ({}, {})
+    )
 
     return make_dataclass(
         cls_name,
-        chain(metafields_schema, records_schema),
+        chain(metafields_schema.items(), records_schema.items()),
         bases=(_Header,),
         namespace=namespace,
         kw_only=True,
