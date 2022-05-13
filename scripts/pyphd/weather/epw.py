@@ -14,7 +14,15 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 
 # TODO: check numbers
 # TODO: rper
-@dataclass(kw_only=True)
+DATACLASS_PARAMS = {
+    "eq": False,  # not work for float("nan")
+    "order": False,  # see 'eq'
+    "kw_only": True,
+    "slots": True,  # explicit super(), see https://bugs.python.org/issue46404, https://stackoverflow.com/a/1817840
+}
+
+
+@dataclass(**DATACLASS_PARAMS)
 class _Records:
     def __getattr__(self, name: str):
         idx = next(
@@ -55,7 +63,7 @@ def _make_header_dataclass(header_name: str) -> type:
     header_schema = _EPW_SCHEMA[header_name]
     metafields_schema = header_schema["metafields"]
 
-    @dataclass(kw_only=True)
+    @dataclass(**DATACLASS_PARAMS)
     class _Header(_Records):
         name: ClassVar[str] = header_name
         metafields: ClassVar[AnyFieldSchema] = metafields_schema
@@ -91,7 +99,7 @@ def _make_header_dataclass(header_name: str) -> type:
                     map(
                         str,
                         (
-                            self.__dict__[metafield_name]
+                            getattr(self, metafield_name)
                             for metafield_name in self.metafields.keys()
                         ),
                     )
@@ -109,7 +117,7 @@ def _make_header_dataclass(header_name: str) -> type:
             if cls.name == "design_conditions":
                 return ",".join(epw_records)
             #####################################
-            return super()._load_epw_records(
+            return super(_Header, cls)._load_epw_records(
                 zip(
                     *(
                         (iter(item if item != "" else "nan" for item in epw_records),)
@@ -124,7 +132,7 @@ def _make_header_dataclass(header_name: str) -> type:
             if self.name == "design_conditions":
                 return self.records
             #####################################
-            return ",".join(super()._dump_epw_records()).replace("nan", "")
+            return ",".join(super(_Header, self)._dump_epw_records()).replace("nan", "")
 
     records_schema, namespace = (
         ({"records": AnyRecords}, {"fields": header_schema["fields"]})
@@ -137,7 +145,7 @@ def _make_header_dataclass(header_name: str) -> type:
         chain(metafields_schema.items(), records_schema.items()),
         bases=(_Header,),
         namespace=namespace,
-        kw_only=True,
+        **DATACLASS_PARAMS,
     )
 
 
@@ -151,7 +159,7 @@ _Comments2 = _make_header_dataclass("comments_2")
 _DataPeriods = _make_header_dataclass("data_periods")
 
 
-@dataclass(kw_only=True)
+@dataclass(**DATACLASS_PARAMS)
 class EPW(_Records):
     location: _Location
     design_conditions: _DesignConditions
@@ -206,6 +214,6 @@ class EPW(_Records):
 
     @classmethod
     def _load_epw_records(cls, epw_records: Iterator[str]) -> AnyRecords:
-        return super()._load_epw_records(
+        return super(EPW, cls)._load_epw_records(
             (iter(epw_record.split(",")) for epw_record in epw_records)
         )
