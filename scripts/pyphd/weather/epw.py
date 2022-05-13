@@ -13,6 +13,7 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 """
 
 # TODO: check numbers
+# TODO: rper
 @dataclass(kw_only=True)
 class _Records:
     def __getattr__(self, name: str):
@@ -43,7 +44,7 @@ class _Records:
 
 def _make_header_dataclass(header_name: str) -> type:
     header_name = header_name.lower()
-    cls_name = "".join(item.capitalize() for item in header_name.split("_"))
+    cls_name = "_" + "".join(item.capitalize() for item in header_name.split("_"))
     header_schema = _EPW_SCHEMA[header_name]
     metafields_schema = header_schema["metafields"]
 
