@@ -1,7 +1,7 @@
 from itertools import chain, islice
 from dataclasses import dataclass, make_dataclass
 
-from ._epw_schema import _EPW_SCHEMA
+from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
 from typing import ClassVar, Iterator
@@ -15,6 +15,14 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 # TODO: check numbers
 @dataclass(kw_only=True)
 class _Records:
+    def __getattr__(self, name: str):
+        idx = next(
+            (item[0] for item in enumerate(self.fields) if item[1][0] == name), None
+        )
+        if idx is None:
+            raise AttributeError(f"invalid field name: '{name}'")
+        return next(islice(zip(*self.records, strict=True), idx, None))
+
     @classmethod
     def _load_epw_records(cls, records_iter: Iterator[Iterator[str]]) -> AnyRecords:
         return tuple(
@@ -29,13 +37,8 @@ class _Records:
             )
         )
 
-    def __getattr__(self, name: str):
-        idx = next(
-            (item[0] for item in enumerate(self.fields) if item[1][0] == name), None
-        )
-        if idx is None:
-            raise AttributeError(f"invalid field name: '{name}'")
-        return next(islice(zip(*self.records, strict=True), idx, None))
+    def _dump_epw_records(self) -> Iterator[str]:
+        return (",".join(map(str, record)) for record in self.records)
 
 
 def _make_header_dataclass(header_name: str) -> type:
@@ -72,6 +75,20 @@ def _make_header_dataclass(header_name: str) -> type:
         def _from_dict(cls, header_dict: dict[str : AnyField | AnyRecords]) -> Self:
             return cls(**header_dict)
 
+        def _to_epw_line(self) -> str:
+            return (
+                _EPW_HEADER_NAMES[header_name]
+                + ","
+                + ",".join(
+                    map(str, (self.__dict__[item] for item, _ in self.metafields))
+                )
+                + (
+                    "," + self._dump_epw_records()
+                    if "fields" in self.__class__.__dict__
+                    else ""
+                )
+            )
+
         @classmethod
         def _load_epw_records(cls, epw_records: tuple[str]) -> AnyRecords:
             ## temporary for design conditions ##
@@ -87,6 +104,13 @@ def _make_header_dataclass(header_name: str) -> type:
                     strict=True,
                 )
             )
+
+        def _dump_epw_records(self) -> str:
+            ## temporary for design conditions ##
+            if self.name == "design_conditions":
+                return self.records
+            #####################################
+            return ",".join(super()._dump_epw_records()).replace("nan", "")
 
     records_schema = (("records", AnyRecords),) if "fields" in header_schema else ()
     namespace = {"fields": header_schema["fields"]} if "fields" in header_schema else {}
@@ -143,6 +167,25 @@ class EPW(_Records):
             data_periods=_DataPeriods._from_epw_line(next(epw_iter)),
             records=cls._load_epw_records(epw_iter),
         )
+
+    def to_epw(self, epw_file: AnyPath) -> None:
+        with open(epw_file, "wt") as fp:
+            fp.write(
+                "\n".join(
+                    (
+                        self.location._to_epw_line(),
+                        self.design_conditions._to_epw_line(),
+                        self.typical_extreme_periods._to_epw_line(),
+                        self.ground_temperatures._to_epw_line(),
+                        self.holidays_daylight_saving._to_epw_line(),
+                        self.comments_1._to_epw_line(),
+                        self.comments_2._to_epw_line(),
+                        self.data_periods._to_epw_line(),
+                        *self._dump_epw_records(),
+                    )
+                )
+                + "\n"
+            )
 
     @classmethod
     def _load_epw_records(cls, epw_records: Iterator[str]) -> AnyRecords:

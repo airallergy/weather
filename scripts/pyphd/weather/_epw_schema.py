@@ -108,3 +108,14 @@ _EPW_SCHEMA = {
         )
     },
 }
+
+_EPW_HEADER_NAMES = {
+    "location": "LOCATION",
+    "design_conditions": "DESIGN CONDITIONS",
+    "typical_extreme_periods": "TYPICAL/EXTREME PERIODS",
+    "ground_temperatures": "GROUND TEMPERATURES",
+    "holidays_daylight_saving": "HOLIDAYS/DAYLIGHT SAVINGS",
+    "comments_1": "COMMENTS 1",
+    "comments_2": "COMMENTS 2",
+    "data_periods": "DATA PERIODS",
+}
