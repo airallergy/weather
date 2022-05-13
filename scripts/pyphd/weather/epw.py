@@ -91,22 +91,21 @@ class _Header(_Records):
         return cls(**header_dict)
 
     def _to_epw_line(self) -> str:
-        return (
-            _EPW_HEADER_NAMES[self.name]
-            + ","
-            + ",".join(
+        return ",".join(
+            chain(
+                (_EPW_HEADER_NAMES[self.name],),
                 map(
                     str,
                     (
                         getattr(self, metafield_name)
                         for metafield_name in self.metafields.keys()
                     ),
-                )
-            )
-            + (
-                "," + self._dump_epw_records()
-                if "fields" in self.__class__.__dict__
-                else ""
+                ),
+                (
+                    (self._dump_epw_records(),)
+                    if "fields" in self.__class__.__dict__
+                    else ()
+                ),
             )
         )
 
