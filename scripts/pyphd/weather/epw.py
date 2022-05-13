@@ -65,87 +65,95 @@ class _Records:
         return (",".join(map(str, record)) for record in self.records)
 
 
+@dataclass(**DATACLASS_PARAMS)
+class _Header(_Records):
+    @classmethod
+    def _from_epw_line(cls, epw_line: str) -> Self:
+        num_metafields = len(cls.metafields)
+        epw_line_parts = tuple(epw_line.split(","))
+        header_dict = {
+            metafield_name: metafield_type(metafield_val)
+            for (metafield_name, metafield_type), metafield_val in zip(
+                cls.metafields.items(),
+                epw_line_parts[1 : num_metafields + 1],
+                strict=True,
+            )
+        }
+        if "fields" in cls.__dict__:
+            records_1d = epw_line_parts[num_metafields + 1 :]
+            header_dict["records"] = (
+                cls._load_epw_records(records_1d) if len(records_1d) > 0 else ()
+            )
+        return cls._from_dict(header_dict)
+
+    @classmethod
+    def _from_dict(cls, header_dict: dict[str : AnyField | AnyRecords]) -> Self:
+        return cls(**header_dict)
+
+    def _to_epw_line(self) -> str:
+        return (
+            _EPW_HEADER_NAMES[self.name]
+            + ","
+            + ",".join(
+                map(
+                    str,
+                    (
+                        getattr(self, metafield_name)
+                        for metafield_name in self.metafields.keys()
+                    ),
+                )
+            )
+            + (
+                "," + self._dump_epw_records()
+                if "fields" in self.__class__.__dict__
+                else ""
+            )
+        )
+
+    @classmethod
+    def _load_epw_records(cls, epw_records: tuple[str]) -> AnyRecords:
+        ## temporary for design conditions ##
+        if cls.name == "design_conditions":
+            return ",".join(epw_records)
+        #####################################
+        return super(_Header, cls)._load_epw_records(
+            zip(
+                *(
+                    (iter(item if item != "" else "nan" for item in epw_records),)
+                    * len(cls.fields)
+                ),
+                strict=True,
+            )
+        )
+
+    def _dump_epw_records(self) -> str:
+        ## temporary for design conditions ##
+        if self.name == "design_conditions":
+            return self.records
+        #####################################
+        return ",".join(super(_Header, self)._dump_epw_records()).replace("nan", "")
+
+
 def _make_header_dataclass(header_name: str) -> type:
     header_name = header_name.lower()
     cls_name = "_" + "".join(item.capitalize() for item in header_name.split("_"))
     header_schema = _EPW_SCHEMA[header_name]
     metafields_schema = header_schema["metafields"]
 
-    @dataclass(**DATACLASS_PARAMS)
-    class _Header(_Records):
-        name: ClassVar[str] = header_name
-        metafields: ClassVar[AnyFieldSchema] = metafields_schema
-
-        @classmethod
-        def _from_epw_line(cls, epw_line: str) -> Self:
-            num_metafields = len(cls.metafields)
-            epw_line_parts = tuple(epw_line.split(","))
-            header_dict = {
-                metafield_name: metafield_type(metafield_val)
-                for (metafield_name, metafield_type), metafield_val in zip(
-                    cls.metafields.items(),
-                    epw_line_parts[1 : num_metafields + 1],
-                    strict=True,
-                )
-            }
-            if "fields" in cls.__dict__:
-                records_1d = epw_line_parts[num_metafields + 1 :]
-                header_dict["records"] = (
-                    cls._load_epw_records(records_1d) if len(records_1d) > 0 else ()
-                )
-            return cls._from_dict(header_dict)
-
-        @classmethod
-        def _from_dict(cls, header_dict: dict[str : AnyField | AnyRecords]) -> Self:
-            return cls(**header_dict)
-
-        def _to_epw_line(self) -> str:
-            return (
-                _EPW_HEADER_NAMES[header_name]
-                + ","
-                + ",".join(
-                    map(
-                        str,
-                        (
-                            getattr(self, metafield_name)
-                            for metafield_name in self.metafields.keys()
-                        ),
-                    )
-                )
-                + (
-                    "," + self._dump_epw_records()
-                    if "fields" in self.__class__.__dict__
-                    else ""
-                )
-            )
-
-        @classmethod
-        def _load_epw_records(cls, epw_records: tuple[str]) -> AnyRecords:
-            ## temporary for design conditions ##
-            if cls.name == "design_conditions":
-                return ",".join(epw_records)
-            #####################################
-            return super(_Header, cls)._load_epw_records(
-                zip(
-                    *(
-                        (iter(item if item != "" else "nan" for item in epw_records),)
-                        * len(cls.fields)
-                    ),
-                    strict=True,
-                )
-            )
-
-        def _dump_epw_records(self) -> str:
-            ## temporary for design conditions ##
-            if self.name == "design_conditions":
-                return self.records
-            #####################################
-            return ",".join(super(_Header, self)._dump_epw_records()).replace("nan", "")
-
     records_schema, namespace = (
-        ({"records": AnyRecords}, {"fields": header_schema["fields"]})
+        (
+            {"records": AnyRecords},
+            {
+                "name": header_name,
+                "metafields": metafields_schema,
+                "fields": header_schema["fields"],
+            },
+        )
         if "fields" in header_schema
-        else ({}, {})
+        else (
+            {},
+            {"name": header_name, "metafields": metafields_schema},
+        )
     )
 
     return make_dataclass(
