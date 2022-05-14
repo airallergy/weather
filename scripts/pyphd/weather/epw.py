@@ -1,6 +1,8 @@
+import sys
 from itertools import chain, islice
 from dataclasses import dataclass, make_dataclass
 
+from ._tools import records_tuple
 from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
@@ -47,7 +49,7 @@ class _Records:
 
     @classmethod
     def _load_epw_records(cls, records_iter: Iterator[Iterator[str]]) -> AnyRecords:
-        return tuple(
+        return type(sys.intern(f"{cls.name}_records"), (records_tuple,), {})(
             zip(
                 *(
                     map(field_type, field_vals)
@@ -58,7 +60,8 @@ class _Records:
                     )
                 ),
                 strict=True,
-            )
+            ),
+            field_names=cls.fields.keys(),
         )
 
     def _dump_epw_records(self) -> Iterator[str]:
@@ -185,6 +188,7 @@ class EPW(_Records):
     comments_2: _Comments2
     data_periods: _DataPeriods
     records: AnyRecords
+    name: ClassVar[str] = "epw"
     metafields: ClassVar[AnyFieldSchema] = {
         "location": _Location,
         "design_conditions": _DesignConditions,
