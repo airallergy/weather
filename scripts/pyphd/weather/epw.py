@@ -1,4 +1,3 @@
-import sys
 from itertools import chain, islice
 from dataclasses import dataclass, make_dataclass
 
@@ -49,7 +48,7 @@ class _Records:
 
     @classmethod
     def _load_epw_records(cls, records_iter: Iterator[Iterator[str]]) -> AnyRecords:
-        return type(sys.intern(f"{cls.name}_records"), (records_tuple,), {})(
+        return records_tuple(f"{cls.name}_records", cls.fields.keys())(
             zip(
                 *(
                     map(field_type, field_vals)
@@ -60,8 +59,7 @@ class _Records:
                     )
                 ),
                 strict=True,
-            ),
-            field_names=cls.fields.keys(),
+            )
         )
 
     def _dump_epw_records(self) -> Iterator[str]:

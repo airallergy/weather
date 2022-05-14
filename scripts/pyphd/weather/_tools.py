@@ -1,4 +1,4 @@
-# import sys
+import sys
 import numpy as np
 import pandas as pd
 
@@ -11,18 +11,10 @@ AnyField = int | float | str
 AnyRecords = tuple[tuple[AnyField]]
 
 
-class records_tuple(tuple):
-    """modified from 'collections.namedtuple'."""
-
-    # __match_args__ = None
-    # # for pickling to work, the __module__ variable needs to be set to the frame where the named tuple is created.
-    # __module__ = sys._getframe(1).f_globals.get("__name__", "__main__")
-    field_names = None
-
-    def __new__(cls, records_iter: Iterable[Iterable[AnyField]], *, field_names):
-        cls.field_names = tuple(field_names)
-        # cls.__match_args__ = cls.field_names
-        return super().__new__(cls, records_iter)
+def records_tuple(type_name, field_names):
+    def __str__(self):
+        """return a tuple-like string."""
+        return tuple(self).__str__()
 
     def __repr__(self):
         """return a numpy-like representation without Jupyter Notebook."""
@@ -36,12 +28,28 @@ class records_tuple(tuple):
 
     def _repr_html_(self) -> str | None:
         """return a pandas-like representation with Jupyter Notebook."""
-        return pd.DataFrame(self, columns=self.field_names)._repr_html_()
-
-    def __str__(self):
-        """return a tuple-like string."""
-        return tuple(self).__str__()
+        return pd.DataFrame(
+            self,
+            columns=(
+                field_name.replace("_", " ").capitalize()
+                for field_name in self.field_names
+            ),
+        )._repr_html_()
 
     # def __getnewargs__(self):
     #     """return self as a plain tuple.  Used by copy and pickle."""
     #     return tuple(self)
+
+    return type(
+        sys.intern(type_name),
+        (tuple,),
+        {
+            "__str__": __str__,
+            "__repr__": __repr__,
+            "_repr_html_": _repr_html_,
+            # "__getnewargs__": __getnewargs__,
+            "field_names": field_names,
+            # "__match_args__": field_names,
+            # "__module__": sys._getframe(1).f_globals.get("__name__", "__main__"),
+        },
+    )
