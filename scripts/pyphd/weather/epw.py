@@ -54,7 +54,12 @@ class _Records:
         return records_tuple(f"{cls.name}_records", cls.fields.keys())(
             zip(
                 *(
-                    map(field_type, field_vals)
+                    tuple(  # NOTE: this tuple cannot be omited somehow
+                        field_type("nan")
+                        if ((field_val == "") and (field_type == float))
+                        else field_type(field_val)
+                        for field_val in field_vals
+                    )
                     for field_type, field_vals in zip(
                         cls.fields.values(),
                         zip(*records_iter, strict=True),
@@ -66,7 +71,9 @@ class _Records:
         )
 
     def _dump_epw_records(self) -> Iterator[str]:
-        return (",".join(map(str, record)) for record in self.records)
+        return (
+            ",".join(map(str, record)).replace("nan", "") for record in self.records
+        )
 
 
 @dataclass(**DATACLASS_PARAMS)
@@ -77,19 +84,18 @@ class _Header(_Records):
         epw_line_parts = tuple(
             epw_line.split(",", (1 if cls.name.startswith("comments_") else -1))
         )
+        metadata = epw_line_parts[1 : num_metafields + 1]
         header_dict = {
             metafield_name: metafield_type(metafield_val)
             for (metafield_name, metafield_type), metafield_val in zip(
                 cls.metafields.items(),
-                epw_line_parts[1 : num_metafields + 1],
+                metadata + ("",) * (len(cls.metafields) - len(metadata)),  # for bad epw
                 strict=True,
             )
         }
         if "fields" in cls.__dict__:
             records_1d = epw_line_parts[num_metafields + 1 :]
-            header_dict["records"] = (
-                cls._load_epw_records(records_1d) if len(records_1d) > 0 else ()
-            )
+            header_dict["records"] = cls._load_epw_records(records_1d)
         return cls._from_dict(header_dict)
 
     @classmethod
@@ -121,14 +127,10 @@ class _Header(_Records):
         if cls.name == "design_conditions":
             return ",".join(epw_records)
         #####################################
+        if len(epw_records) == 0:
+            return ()
         return super(_Header, cls)._load_epw_records(
-            zip(
-                *(
-                    (iter(item if item != "" else "nan" for item in epw_records),)
-                    * len(cls.fields)
-                ),
-                strict=True,
-            )
+            zip(*((iter(epw_records),) * len(cls.fields)), strict=True)
         )
 
     def _dump_epw_records(self) -> str:
@@ -136,7 +138,7 @@ class _Header(_Records):
         if self.name == "design_conditions":
             return self.records
         #####################################
-        return ",".join(super(_Header, self)._dump_epw_records()).replace("nan", "")
+        return ",".join(super(_Header, self)._dump_epw_records())
 
 
 def _make_header_dataclass(header_name: str) -> type:
@@ -247,5 +249,11 @@ class EPW(_Records):
     @classmethod
     def _load_epw_records(cls, epw_records: Iterator[str]) -> AnyRecords:
         return super(EPW, cls)._load_epw_records(
-            (iter(epw_record.split(",")) for epw_record in epw_records)
+            (
+                iter(
+                    (data := tuple(epw_record.split(",")))
+                    + ("",) * (len(cls.fields) - len(data))  # for bad epw
+                )
+                for epw_record in epw_records
+            )
         )
