@@ -14,7 +14,7 @@ from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 """
 
 # TODO: check numbers
-# TODO: rper
+
 DATACLASS_PARAMS = {
     "repr": False,
     "eq": False,  # not work for float("nan")
@@ -71,7 +71,9 @@ class _Header(_Records):
     @classmethod
     def _from_epw_line(cls, epw_line: str) -> Self:
         num_metafields = len(cls.metafields)
-        epw_line_parts = tuple(epw_line.split(","))
+        epw_line_parts = tuple(
+            epw_line.split(",", (1 if cls.name.startswith("comments_") else -1))
+        )
         header_dict = {
             metafield_name: metafield_type(metafield_val)
             for (metafield_name, metafield_type), metafield_val in zip(
