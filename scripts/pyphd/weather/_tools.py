@@ -11,45 +11,19 @@ AnyField = int | float | str
 AnyRecords = tuple[tuple[AnyField]]
 
 
-def records_tuple(type_name, field_names):
-    def __str__(self):
-        """return a tuple-like string."""
-        return tuple(self).__str__()
-
-    def __repr__(self):
-        """return a numpy-like representation without Jupyter Notebook."""
-        return (
-            (prefix := f"{self.__class__.__name__}[")
-            + np.array2string(
-                np.array(self), separator=", ", prefix=prefix, suffix="]"
-            ).translate(str.maketrans("[]", "()"))
-            + "]"
-        )
-
-    def _repr_html_(self) -> str | None:
-        """return a pandas-like representation with Jupyter Notebook."""
-        return pd.DataFrame(
-            self,
-            columns=(
-                field_name.replace("_", " ").capitalize()
-                for field_name in self.field_names
-            ),
-        )._repr_html_()
-
-    # def __getnewargs__(self):
-    #     """return self as a plain tuple.  Used by copy and pickle."""
-    #     return tuple(self)
-
-    return type(
-        sys.intern(type_name),
-        (tuple,),
-        {
-            "__str__": __str__,
-            "__repr__": __repr__,
-            "_repr_html_": _repr_html_,
-            # "__getnewargs__": __getnewargs__,
-            "field_names": field_names,
-            # "__match_args__": field_names,
-            # "__module__": sys._getframe(1).f_globals.get("__name__", "__main__"),
-        },
-    )
+records_tuple = lambda type_name, field_names: type(
+    sys.intern(type_name),
+    (tuple,),
+    {
+        "to_pandas": lambda self: pd.DataFrame(self, columns=self.field_names),
+        "__str__": lambda self: tuple(self).__str__(),  # return a tuple-like string
+        "__repr__": lambda self: self.to_pandas().__repr__(),  # return a pandas-like representation
+        "_repr_html_": lambda self: self.to_pandas()._repr_html_(),  # return a pandas-like representation in Jupyter Notebook
+        # "__getnewargs__": lambda self: tuple(self),  # used by copy and pickle
+        "field_names": field_names,
+        # "__match_args__": field_names,
+        # "__module__": sys._getframe(1).f_globals.get(
+        #     "__name__", "__main__"
+        # ),  # used by pickle
+    },
+)
