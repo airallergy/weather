@@ -34,6 +34,9 @@ class _Records:
         return f"<{self.__class__.__name__}: {', '.join(metafield_name for metafield_name in metafield_names)}>"
 
     def __getattr__(self, name: str):
+        if self.records == ():
+            return ()
+
         idx = next(
             (
                 idx
