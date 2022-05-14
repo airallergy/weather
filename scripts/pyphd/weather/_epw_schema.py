@@ -22,7 +22,12 @@ _EPW_SCHEMA = {
     },
     "typical_extreme_periods": {
         "metafields": {"number_of_typical_extreme_periods": int},
-        "fields": {"name": str, "type": str, "start_day": str, "end_day": str},
+        "fields": {
+            "period_name": str,
+            "period_type": str,
+            "start_day": str,
+            "end_day": str,
+        },
     },
     "ground_temperatures": {
         "metafields": {"number_of_ground_temperature_depths": int},
@@ -62,9 +67,9 @@ _EPW_SCHEMA = {
             "number_of_records_per_hour": int,
         },
         "fields": {
-            "name_description": str,
+            "data_period_name": str,
             "start_day_of_week": str,
-            "dstart_day": str,
+            "start_day": str,
             "end_day": str,
         },
     },
