@@ -34,13 +34,19 @@ class _Records:
         return f"<{self.__class__.__name__}: {', '.join(metafield_name for metafield_name in metafield_names)}>"
 
     def __getattr__(self, name: str):
+        if not (
+            ("fields" in self.__class__.__dict__)
+            and (name in (field_names_view := self.fields.keys()))
+        ):
+            raise AttributeError(f"{name} is no valid field of '{self.name}'.")
+
         if self.records == ():
             return ()
 
         idx = next(
             (
                 idx
-                for idx, field_name in enumerate(self.fields.keys())
+                for idx, field_name in enumerate(field_names_view)
                 if field_name == name
             ),
             None,
