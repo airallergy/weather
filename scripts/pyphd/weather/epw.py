@@ -1,7 +1,7 @@
 from itertools import chain, islice
 from dataclasses import dataclass, make_dataclass
 
-from ._tools import records_tuple
+from ._tools import rectuple
 from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
@@ -57,7 +57,7 @@ class _Records:
 
     @classmethod
     def _load_epw_records(cls, records_iter: Iterator[Iterator[str]]) -> AnyRecords:
-        return records_tuple(f"{cls.name}_records", cls.fields.keys())(
+        return rectuple(f"{cls.name}_records", cls.fields.keys())(
             zip(
                 *(
                     tuple(  # NOTE: this tuple cannot be omited somehow

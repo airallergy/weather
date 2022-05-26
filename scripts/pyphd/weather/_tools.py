@@ -1,17 +1,14 @@
 import sys
-import numpy as np
 import pandas as pd
 
 from os import PathLike
-from typing import Iterable
 
 AnyPath = str | bytes | PathLike[str] | PathLike[bytes]
 AnyFieldSchema = dict[str:type]
 AnyField = int | float | str
-AnyRecords = tuple[tuple[AnyField]]
+AnyRecords = tuple[tuple[AnyField, ...], ...]  # NOTE: the 1st tuple refers to rectuple
 
-
-records_tuple = lambda type_name, field_names: type(
+rectuple = lambda type_name, field_names: type(
     sys.intern(type_name),
     (tuple,),
     {
