@@ -5,7 +5,8 @@ from ._tools import rectuple
 from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
-from typing import ClassVar, Iterator
+from typing import ClassVar
+from collections.abc import Iterator
 from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
 
 
