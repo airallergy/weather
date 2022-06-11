@@ -3,7 +3,7 @@ import pandas as pd
 
 from os import PathLike
 
-AnyPath = str | bytes | PathLike[str] | PathLike[bytes]
+AnyStrPath = str | PathLike[str]
 AnyFieldSchema = dict[str:type]
 AnyField = int | float | str
 AnyRecords = tuple[tuple[AnyField, ...], ...]  # NOTE: the 1st tuple refers to rectuple

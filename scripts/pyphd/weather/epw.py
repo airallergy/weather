@@ -7,7 +7,7 @@ from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
 from typing import ClassVar
 from collections.abc import Iterator
-from ._tools import AnyPath, AnyField, AnyRecords, AnyFieldSchema
+from ._tools import AnyStrPath, AnyField, AnyRecords, AnyFieldSchema
 
 
 """Terminology
@@ -214,7 +214,7 @@ class EPW(_Records):
     fields: ClassVar[AnyFieldSchema] = _EPW_SCHEMA["data"]["fields"]
 
     @classmethod
-    def from_epw(cls, epw_file: AnyPath) -> Self:
+    def from_epw(cls, epw_file: AnyStrPath) -> Self:
         with open(epw_file, "rt") as fp:
             epw_iter = (line.rstrip() for line in fp.readlines())
 
@@ -234,7 +234,7 @@ class EPW(_Records):
             records=cls._load_epw_records(epw_iter),
         )
 
-    def to_epw(self, epw_file: AnyPath) -> None:
+    def to_epw(self, epw_file: AnyStrPath) -> None:
         with open(epw_file, "wt") as fp:
             fp.write(
                 "\n".join(
