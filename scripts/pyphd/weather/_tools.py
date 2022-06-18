@@ -4,7 +4,7 @@ import pandas as pd
 from os import PathLike
 
 AnyStrPath = str | PathLike[str]
-AnyFieldSchema = dict[str:type]
+AnyFieldSchema = dict[str, type]
 AnyField = int | float | str
 AnyRecords = tuple[tuple[AnyField, ...], ...]  # NOTE: the 1st tuple refers to rectuple
 

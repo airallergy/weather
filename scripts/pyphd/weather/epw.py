@@ -106,7 +106,7 @@ class _Header(_Records):
         return cls._from_dict(header_dict)
 
     @classmethod
-    def _from_dict(cls, header_dict: dict[str : AnyField | AnyRecords]) -> Self:
+    def _from_dict(cls, header_dict: dict[str, AnyField | AnyRecords]) -> Self:
         return cls(**header_dict)
 
     def _to_epw_line(self) -> str:
