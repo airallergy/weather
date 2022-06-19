@@ -1,4 +1,6 @@
-_EPW_SCHEMA: dict[str, dict[str, dict[str, type]]] = {
+from ._tools import AnyFieldSchema
+
+_EPW_SCHEMA: dict[str, dict[str, AnyFieldSchema]] = {
     "location": {
         "metafields": {
             "city": str,

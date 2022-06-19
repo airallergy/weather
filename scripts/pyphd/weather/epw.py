@@ -27,6 +27,9 @@ DATACLASS_PARAMS = {
 
 @dataclass(**DATACLASS_PARAMS)
 class _Records:
+    name: ClassVar[str]
+    fields: ClassVar[AnyFieldSchema]
+
     def __repr__(self):
         metafield_names = chain(
             self.metafields.keys(),
@@ -87,6 +90,8 @@ class _Records:
 
 @dataclass(**DATACLASS_PARAMS)
 class _Header(_Records):
+    metafields: ClassVar[AnyFieldSchema]
+
     @classmethod
     def _from_epw_line(cls, epw_line: str) -> Self:  # type: ignore[valid-type] # python/mypy#11666
         num_metafields = len(cls.metafields)
@@ -134,7 +139,7 @@ class _Header(_Records):
     def _load_epw_records(cls, epw_records: tuple[str, ...]) -> AnyRecords:
         ## temporary for design conditions ##
         if cls.name == "design_conditions":
-            return ",".join(epw_records)
+            return ",".join(epw_records)  # type: ignore  # design conditions
         #####################################
         if len(epw_records) == 0:
             return ()
