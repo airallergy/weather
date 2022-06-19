@@ -4,9 +4,9 @@ from dataclasses import dataclass, make_dataclass
 from ._tools import rectuple
 from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
 
-from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
 from typing import ClassVar
-from collections.abc import Iterator
+from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
+from collections.abc import Iterator, Iterable
 from ._tools import AnyStrPath, AnyField, AnyRecords, AnyFieldSchema
 
 
@@ -57,7 +57,9 @@ class _Records:
         return next(islice(zip(*self.records, strict=True), idx, None))
 
     @classmethod
-    def _load_epw_records(cls, records_iter: Iterator[Iterator[str]]) -> AnyRecords:
+    def _load_epw_records_generic(
+        cls, records_iter: Iterator[Iterable[str]]
+    ) -> AnyRecords:
         return rectuple(f"{cls.name}_records", cls.fields.keys())(
             zip(
                 *(
@@ -77,7 +79,7 @@ class _Records:
             )
         )
 
-    def _dump_epw_records(self) -> Iterator[str]:
+    def _dump_epw_records_generic(self) -> Iterator[str]:
         return (
             ",".join(map(str, record)).replace("nan", "") for record in self.records
         )
@@ -129,14 +131,14 @@ class _Header(_Records):
         )
 
     @classmethod
-    def _load_epw_records(cls, epw_records: tuple[str]) -> AnyRecords:
+    def _load_epw_records(cls, epw_records: tuple[str, ...]) -> AnyRecords:
         ## temporary for design conditions ##
         if cls.name == "design_conditions":
             return ",".join(epw_records)
         #####################################
         if len(epw_records) == 0:
             return ()
-        return super(_Header, cls)._load_epw_records(
+        return cls._load_epw_records_generic(
             zip(*((iter(epw_records),) * len(cls.fields)), strict=True)
         )
 
@@ -145,7 +147,7 @@ class _Header(_Records):
         if self.name == "design_conditions":
             return self.records
         #####################################
-        return ",".join(super(_Header, self)._dump_epw_records())
+        return ",".join(self._dump_epw_records_generic())
 
 
 def _make_header_dataclass(header_name: str) -> type:
@@ -255,7 +257,7 @@ class EPW(_Records):
 
     @classmethod
     def _load_epw_records(cls, epw_records: Iterator[str]) -> AnyRecords:
-        return super(EPW, cls)._load_epw_records(
+        return cls._load_epw_records_generic(
             (
                 iter(
                     (data := tuple(epw_record.split(",")))
@@ -264,3 +266,6 @@ class EPW(_Records):
                 for epw_record in epw_records
             )
         )
+
+    def _dump_epw_records(self) -> Iterator[str]:
+        return self._dump_epw_records_generic()

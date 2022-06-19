@@ -1,4 +1,4 @@
-_EPW_SCHEMA = {
+_EPW_SCHEMA: dict[str, dict[str, dict[str, type]]] = {
     "location": {
         "metafields": {
             "city": str,
@@ -114,7 +114,7 @@ _EPW_SCHEMA = {
     },
 }
 
-_EPW_HEADER_NAMES = {
+_EPW_HEADER_NAMES: dict[str, str] = {
     "location": "LOCATION",
     "design_conditions": "DESIGN CONDITIONS",
     "typical_extreme_periods": "TYPICAL/EXTREME PERIODS",
