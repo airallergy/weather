@@ -88,7 +88,7 @@ class _Records:
 @dataclass(**DATACLASS_PARAMS)
 class _Header(_Records):
     @classmethod
-    def _from_epw_line(cls, epw_line: str) -> Self:
+    def _from_epw_line(cls, epw_line: str) -> Self:  # type: ignore[valid-type] # python/mypy#11666
         num_metafields = len(cls.metafields)
         epw_line_parts = tuple(
             epw_line.split(",", (1 if cls.name.startswith("comments_") else -1))
@@ -108,7 +108,7 @@ class _Header(_Records):
         return cls._from_dict(header_dict)
 
     @classmethod
-    def _from_dict(cls, header_dict: dict[str, AnyField | AnyRecords]) -> Self:
+    def _from_dict(cls, header_dict: dict[str, AnyField | AnyRecords]) -> Self:  # type: ignore[valid-type] # python/mypy#11666
         return cls(**header_dict)
 
     def _to_epw_line(self) -> str:
@@ -193,14 +193,14 @@ _DataPeriods = _make_header_dataclass("data_periods")
 
 @dataclass(**DATACLASS_PARAMS)
 class EPW(_Records):
-    location: _Location
-    design_conditions: _DesignConditions
-    typical_extreme_periods: _TypicalExtremePeriods
-    ground_temperatures: _GroundTemperatures
-    holidays_daylight_saving: _HolidaysDaylightSaving
-    comments_1: _Comments1
-    comments_2: _Comments2
-    data_periods: _DataPeriods
+    location: _Location  # type: ignore[valid-type] # python/mypy#6063
+    design_conditions: _DesignConditions  # type: ignore[valid-type] # python/mypy#6063
+    typical_extreme_periods: _TypicalExtremePeriods  # type: ignore[valid-type] # python/mypy#6063
+    ground_temperatures: _GroundTemperatures  # type: ignore[valid-type] # python/mypy#6063
+    holidays_daylight_saving: _HolidaysDaylightSaving  # type: ignore[valid-type] # python/mypy#6063
+    comments_1: _Comments1  # type: ignore[valid-type] # python/mypy#6063
+    comments_2: _Comments2  # type: ignore[valid-type] # python/mypy#6063
+    data_periods: _DataPeriods  # type: ignore[valid-type] # python/mypy#6063
     records: AnyRecords
     name: ClassVar[str] = "epw"
     metafields: ClassVar[AnyFieldSchema] = {
@@ -216,23 +216,23 @@ class EPW(_Records):
     fields: ClassVar[AnyFieldSchema] = _EPW_SCHEMA["data"]["fields"]
 
     @classmethod
-    def from_epw(cls, epw_file: AnyStrPath) -> Self:
+    def from_epw(cls, epw_file: AnyStrPath) -> Self:  # type: ignore[valid-type] # python/mypy#11666
         with open(epw_file, "rt") as fp:
             epw_iter = (line.rstrip() for line in fp.readlines())
 
         return cls(
-            location=_Location._from_epw_line(next(epw_iter)),
-            design_conditions=_DesignConditions._from_epw_line(next(epw_iter)),
-            typical_extreme_periods=_TypicalExtremePeriods._from_epw_line(
+            location=_Location._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
+            design_conditions=_DesignConditions._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
+            typical_extreme_periods=_TypicalExtremePeriods._from_epw_line(  # type: ignore[attr-defined] # python/mypy#6063
                 next(epw_iter)
             ),
-            ground_temperatures=_GroundTemperatures._from_epw_line(next(epw_iter)),
-            holidays_daylight_saving=_HolidaysDaylightSaving._from_epw_line(
+            ground_temperatures=_GroundTemperatures._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
+            holidays_daylight_saving=_HolidaysDaylightSaving._from_epw_line(  # type: ignore[attr-defined] # python/mypy#6063
                 next(epw_iter)
             ),
-            comments_1=_Comments1._from_epw_line(next(epw_iter)),
-            comments_2=_Comments2._from_epw_line(next(epw_iter)),
-            data_periods=_DataPeriods._from_epw_line(next(epw_iter)),
+            comments_1=_Comments1._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
+            comments_2=_Comments2._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
+            data_periods=_DataPeriods._from_epw_line(next(epw_iter)),  # type: ignore[attr-defined] # python/mypy#6063
             records=cls._load_epw_records(epw_iter),
         )
 
@@ -241,14 +241,14 @@ class EPW(_Records):
             fp.write(
                 "\n".join(
                     (
-                        self.location._to_epw_line(),
-                        self.design_conditions._to_epw_line(),
-                        self.typical_extreme_periods._to_epw_line(),
-                        self.ground_temperatures._to_epw_line(),
-                        self.holidays_daylight_saving._to_epw_line(),
-                        self.comments_1._to_epw_line(),
-                        self.comments_2._to_epw_line(),
-                        self.data_periods._to_epw_line(),
+                        self.location._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.design_conditions._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.typical_extreme_periods._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.ground_temperatures._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.holidays_daylight_saving._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.comments_1._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.comments_2._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
+                        self.data_periods._to_epw_line(),  # type: ignore[attr-defined] # python/mypy#6063
                         *self._dump_epw_records(),
                     )
                 )
