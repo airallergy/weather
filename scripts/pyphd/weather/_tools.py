@@ -1,7 +1,7 @@
 import sys
-import pandas as pd
-
 from os import PathLike
+
+import pandas as pd
 
 AnyStrPath = str | PathLike[str]
 AnyFieldSchema = dict[str, type]

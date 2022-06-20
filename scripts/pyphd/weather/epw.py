@@ -1,14 +1,12 @@
+from typing import ClassVar
 from itertools import chain, islice
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, make_dataclass
 
-from ._tools import rectuple
-from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
-
-from typing import ClassVar
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
-from collections.abc import Iterator, Iterable
-from ._tools import AnyStrPath, AnyField, AnyRecords, AnyFieldSchema
 
+from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
+from ._tools import AnyField, AnyRecords, AnyStrPath, AnyFieldSchema, rectuple
 
 """Terminology
 1. An epw weather file starts with several 'header records', followed by 'data records'.
