@@ -1,12 +1,12 @@
-from typing import ClassVar
-from itertools import chain, islice
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, make_dataclass
+from itertools import chain, islice
+from typing import ClassVar
 
 from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
 
-from ._epw_schema import _EPW_SCHEMA, _EPW_HEADER_NAMES
-from ._tools import AnyField, AnyRecords, AnyStrPath, AnyFieldSchema, rectuple
+from ._epw_schema import _EPW_HEADER_NAMES, _EPW_SCHEMA
+from ._tools import AnyField, AnyFieldSchema, AnyRecords, AnyStrPath, rectuple
 
 """Terminology
 1. An epw weather file starts with several 'header records', followed by 'data records'.
@@ -137,7 +137,7 @@ class _Header(_Records):
     def _load_epw_records(cls, epw_records: tuple[str, ...]) -> AnyRecords:
         ## temporary for design conditions ##
         if cls.name == "design_conditions":
-            return ",".join(epw_records)  # type: ignore  # design conditions
+            return ",".join(epw_records)  # type: ignore[return-value]  # design conditions
         #####################################
         if len(epw_records) == 0:
             return ()
@@ -220,7 +220,7 @@ class EPW(_Records):
 
     @classmethod
     def from_epw(cls, epw_file: AnyStrPath) -> Self:  # type: ignore[valid-type] # python/mypy#11666
-        with open(epw_file, "rt") as fp:
+        with open(epw_file) as fp:
             epw_iter = (line.rstrip() for line in fp.readlines())
 
         return cls(
@@ -240,7 +240,7 @@ class EPW(_Records):
         )
 
     def to_epw(self, epw_file: AnyStrPath) -> None:
-        with open(epw_file, "wt") as fp:
+        with open(epw_file, "w") as fp:
             fp.write(
                 "\n".join(
                     (
@@ -261,13 +261,11 @@ class EPW(_Records):
     @classmethod
     def _load_epw_records(cls, epw_records: Iterator[str]) -> AnyRecords:
         return cls._load_epw_records_generic(
-            (
-                iter(
-                    (data := tuple(epw_record.split(",")))
-                    + ("",) * (len(cls.fields) - len(data))  # for bad epw
-                )
-                for epw_record in epw_records
+            iter(
+                (data := tuple(epw_record.split(",")))
+                + ("",) * (len(cls.fields) - len(data))  # for bad epw
             )
+            for epw_record in epw_records
         )
 
     def _dump_epw_records(self) -> Iterator[str]:

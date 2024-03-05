@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import pytest
 import pandas as pd
+import pytest
 
 from weather import EPW
 
