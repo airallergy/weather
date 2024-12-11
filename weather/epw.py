@@ -1,9 +1,7 @@
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, make_dataclass
 from itertools import chain, islice
-from typing import ClassVar
-
-from typing_extensions import Self  # from 3.11, see https://peps.python.org/pep-0673/
+from typing import ClassVar, Self
 
 from ._epw_schema import _EPW_HEADER_NAMES, _EPW_SCHEMA
 from ._tools import AnyField, AnyFieldSchema, AnyRecords, AnyStrPath, rectuple
@@ -66,7 +64,7 @@ class _Records:
                 *(
                     tuple(  # NOTE: this tuple cannot be omited somehow
                         field_type("nan")
-                        if ((field_val == "") and (field_type == float))
+                        if ((field_val == "") and (field_type is float))
                         else field_type(field_val)
                         for field_val in field_vals
                     )
@@ -180,7 +178,7 @@ def _make_header_dataclass(header_name: str) -> type:
         chain(metafields_schema.items(), records_schema.items()),
         bases=(_Header,),
         namespace=namespace,
-        **DATACLASS_PARAMS,
+        **DATACLASS_PARAMS,  # type: ignore[arg-type]
     )
 
 

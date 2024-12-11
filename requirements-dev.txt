@@ -1,4 +1,3 @@
 pandas
-typing_extensions
 pytest
-coverage
+pytest-cov

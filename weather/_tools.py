@@ -8,7 +8,7 @@ AnyFieldSchema = dict[str, type]
 AnyField = int | float | str
 AnyRecords = tuple[tuple[AnyField, ...], ...]  # NOTE: the 1st tuple refers to rectuple
 
-rectuple = (
+rectuple = (  # noqa: E731
     lambda type_name, field_names: type(
         sys.intern(type_name),
         (tuple,),
